@@ -1,0 +1,92 @@
+Reproducible Research Project 1
+========================================================
+
+**SUMMARY**
+
+
+This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day. 
+
+
+*Loading the Data*
+
+```{r}
+amd<-read.csv("activity.csv")
+```
+
+**What is the mean total number of steps taken per day?**
+
+
+Here we add all of the steps over all of the 61 days of collected data, display a histogram of the total steps per day and compute the mean and median steps per day. 
+
+
+```{r}
+stepsperday<-tapply(amd$steps, amd$date, sum)
+hist(stepsperday, breaks=10, xlab="Total Number of Steps", ylab="Frequency", main="Histogram of Total Number of Steps Per Day", col="blue")
+mean(stepsperday, na.rm=TRUE)
+median(stepsperday, na.rm=TRUE)
+```
+
+**What is the average daily activity pattern?**
+
+
+Here we display a time-series plot of the daily 5 minute intervals and  number of steps taken within the intervals averaged over all of the days. We then determine which 5-minute interval contains the maximum number of steps. 
+
+
+```{r}
+meanstepsperperiod<-tapply(amd$steps, amd$interval, mean, na.rm=TRUE)
+plot(y=meanstepsperperiod, x=names(meanstepsperperiod), type="l", xlab="Interval", ylab="Mean Steps Per Interval", main="Plot of mean steps vs. Interval")
+which.max(meanstepsperperiod)
+```
+
+**Imputing missing values**
+
+First we calculate the total number of missing values. 
+```{r}
+sum(is.na(amd))
+
+```
+Next we impute the missing values using the average steps for that period over all of the days. 
+```{r}
+amd_corrected=amd
+amd_corrected$meanstepsperperiod<-rep(meanstepsperperiod,61)
+amd_corrected$steps[is.na(amd_corrected$steps)]<-amd_corrected$meanstepsperperiod[is.na(amd_corrected$steps)]
+amd_corrected$meanstepsperperiod<-NULL
+```
+Let us check that the missing values are gone. 
+```{r}
+sum(is.na(amd_corrected))
+
+```
+
+Now we display a histogram of the average steps per day and report the median and mean. These values do not differ much from the values obtained above when the missing values were ignored. This is expected since we are merely replacing the values with the mean of the other values.   
+
+```{r}
+stepsperday2<-tapply(amd_corrected$steps, amd_corrected$date, sum)
+hist(stepsperday2, breaks=10, xlab="Total Number of Steps", ylab="Frequency", main="Histogram of Total Number of Steps Per Day (missing data imputed)", col="blue")
+mean(stepsperday2)
+median(stepsperday2)
+```
+
+**Are there differences in activity patterns between weekdays and weekends?**
+Here we divide the data into those from weekdays and weekends. Next, we plot the time-series plots for weekdays and weekends separately. 
+
+```{r}
+amd_corrected$date<-as.Date(amd_corrected$date)
+amd_corrected$day<-weekdays(amd_corrected$date)
+amd_corrected$day<-as.factor(amd_corrected$day)
+
+amd_corrected$daytype=amd_corrected$day
+levels(amd_corrected$daytype)<-list(weekday=c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday"), weekend=c("Saturday", "Sunday"))
+
+amd_weekday<-subset(amd_corrected, amd_corrected$daytype=="weekday")
+amd_weekend<-subset(amd_corrected, amd_corrected$daytype=="weekend")
+
+meanstepsperdayweekend<-tapply(amd_weekend$steps, amd_weekend$interval, mean)
+meanstepsperdayweekday<-tapply(amd_weekday$steps, amd_weekday$interval, mean)
+
+par(mfrow=c(1,2))
+plot(names(meanstepsperdayweekend), meanstepsperdayweekend, type="l", xlab="Interval", ylab="Mean Steps Per Interval", main="Mean steps vs. Interval (WEEKENDS)")
+plot(names(meanstepsperdayweekday), meanstepsperdayweekday, type="l", xlab="Interval", ylab="Mean Steps Per Interval", main="Mean steps vs. Interval (WEEKDAYS)")
+```
+
+
